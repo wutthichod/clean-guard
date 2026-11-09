@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="cg-token" content="__TOKEN__">
+<title>CleanGuard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">CleanGuard</div>
+  <nav class="nav" aria-label="Views">
+    <button id="nav-files" class="nav-btn" aria-current="page">Files</button>
+    <button id="nav-quarantine" class="nav-btn">Quarantine</button>
+  </nav>
+  <div class="top-status">
+    <span id="status-offline" class="pill" title=""></span>
+    <span id="status-model" class="pill"></span>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail" aria-label="Scan">
+    <form id="scan-form" class="scan" novalidate>
+      <label for="scan-folder" class="field-label">Folder to scan</label>
+      <div class="input-row">
+        <input id="scan-folder" type="text" spellcheck="false" autocomplete="off" placeholder="~/Downloads">
+        <button id="scan-browse" type="button" class="btn">Browse</button>
+      </div>
+      <label class="check"><input id="scan-dry" type="checkbox"> Dry run (report only, nothing can move)</label>
+      <button id="scan-go" type="submit" class="btn btn-primary btn-wide">Scan folder</button>
+      <p id="scan-error" class="form-error" role="alert" hidden></p>
+    </form>
+    <h2 class="rail-title">Scans</h2>
+    <ul id="run-list" class="run-list"></ul>
+  </aside>
+
+  <main class="main">
+    <section id="view-files">
+      <div id="empty" class="empty">
+        <h1>Find files you can safely clear</h1>
+        <p>Choose a folder and scan it. CleanGuard marks each file and explains why. Nothing moves until you confirm, and everything you move can be restored.</p>
+        <p>Scanning takes about a minute per 8 files on the local model.</p>
+      </div>
+      <div id="run" hidden>
+        <div class="run-head">
+          <div class="run-title">
+            <h1 id="run-folder"></h1>
+            <p id="run-meta" class="muted"></p>
+          </div>
+          <button id="run-rescan" class="btn" hidden>Scan again</button>
+        </div>
+        <div id="notices"></div>
+        <div id="progress" class="progress" role="status" aria-live="polite" hidden></div>
+        <div id="results" hidden>
+          <div id="tabs" class="tabs" role="tablist" aria-label="File groups"></div>
+          <p id="tab-help" class="muted tab-help"></p>
+          <div class="toolbar">
+            <input id="filter" type="search" placeholder="Filter by name" aria-label="Filter files by name">
+            <button id="select-all" class="btn"></button>
+          </div>
+          <div class="table-wrap">
+            <table class="files">
+              <thead><tr id="file-head"></tr></thead>
+              <tbody id="file-rows"></tbody>
+            </table>
+            <p id="no-rows" class="muted no-rows" hidden>No files here.</p>
+          </div>
+        </div>
+      </div>
+      <div id="selection-bar" class="selection-bar" hidden>
+        <span id="selection-text" role="status"></span>
+        <div class="selection-actions">
+          <button id="selection-clear" class="btn">Clear</button>
+          <button id="selection-move" class="btn btn-primary">Move to quarantine</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-quarantine" hidden>
+      <div class="run-head">
+        <div class="run-title">
+          <h1>Quarantine</h1>
+          <p id="q-meta" class="muted"></p>
+        </div>
+      </div>
+      <p class="muted q-note">CleanGuard never empties this folder. When you are sure, delete files from it yourself.</p>
+      <div id="q-batches"></div>
+    </section>
+  </main>
+
+  <aside class="chat" aria-label="Chat with CleanGuard">
+    <div class="chat-head">
+      <h2>Ask CleanGuard</h2>
+      <button id="chat-reset" class="btn btn-small">New chat</button>
+    </div>
+    <p class="muted chat-note">It can explain results and suggest files. It cannot move anything; only you can.</p>
+    <div id="chat-log" class="chat-log" role="log" aria-live="polite"></div>
+    <div id="chat-chips" class="chips"></div>
+    <form id="chat-form" class="chat-form" novalidate>
+      <label for="chat-input" class="sr-only">Your question</label>
+      <textarea id="chat-input" rows="2" placeholder="Ask about this scan"></textarea>
+      <button id="chat-send" type="submit" class="btn btn-primary">Send</button>
+    </form>
+  </aside>
+</div>
+
+<dialog id="dlg-browse" class="dlg" aria-labelledby="browse-title">
+  <h2 id="browse-title">Choose a folder</h2>
+  <div id="browse-shortcuts" class="chips"></div>
+  <p id="browse-path" class="path"></p>
+  <p id="browse-refused" class="note note-warn" hidden></p>
+  <ul id="browse-list" class="browse-list"></ul>
+  <div class="dlg-actions">
+    <button id="browse-cancel" class="btn">Cancel</button>
+    <button id="browse-use" class="btn btn-primary">Use this folder</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-move" class="dlg" aria-labelledby="move-title">
+  <h2 id="move-title"></h2>
+  <p class="muted">Files move to the quarantine folder and can be restored at any time. Nothing is deleted.</p>
+  <ul id="move-list" class="move-list"></ul>
+  <div id="move-sensitive" class="note note-danger" hidden>
+    <strong id="move-sensitive-title"></strong>
+    <p>These probably hold personal data, such as an ID, bank or tax document. Move them only if you have another copy you trust.</p>
+    <ul id="move-sensitive-list" class="move-list"></ul>
+    <label for="move-sensitive-input" class="field-label">Type <b>SENSITIVE</b> to include them</label>
+    <input id="move-sensitive-input" type="text" autocomplete="off" spellcheck="false">
+  </div>
+  <label for="move-input" class="field-label">Type <b>MOVE</b> to confirm</label>
+  <input id="move-input" type="text" autocomplete="off" spellcheck="false">
+  <p id="move-error" class="form-error" role="alert" hidden></p>
+  <div class="dlg-actions">
+    <button id="move-cancel" class="btn">Cancel</button>
+    <button id="move-go" class="btn btn-primary" disabled>Move files</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-file" class="dlg dlg-wide" aria-labelledby="file-title">
+  <h2 id="file-title"></h2>
+  <div id="file-badges" class="badges"></div>
+  <dl id="file-facts" class="facts"></dl>
+  <h3>Why</h3>
+  <p id="file-reason"></p>
+  <h3>Preview</h3>
+  <p id="file-preview-note" class="muted"></p>
+  <pre id="file-preview" class="preview" hidden></pre>
+  <p id="file-error" class="form-error" role="alert" hidden></p>
+  <div class="dlg-actions">
+    <button id="file-reveal" class="btn">Show in folder</button>
+    <button id="file-close" class="btn btn-primary">Close</button>
+  </div>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

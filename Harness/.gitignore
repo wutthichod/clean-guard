@@ -1,9 +1,0 @@
-__pycache__/
-.venv/
-logs/*.jsonl
-logs/*.csv
-runs/
-testbed/
-eval/results/
-.test_tmp/
-demo/files/
